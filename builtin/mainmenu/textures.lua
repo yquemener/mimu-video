@@ -138,6 +138,7 @@ function mm_texture.set_game(identifier, gamedetails)
 	if mm_texture.texturepack ~= nil then
 		local path = mm_texture.texturepack .. DIR_DELIM ..
 			gamedetails.id .. "_menu_" .. identifier .. ".png"
+		print(path)
 		if core.set_background(identifier, path) then
 			return true
 		end
