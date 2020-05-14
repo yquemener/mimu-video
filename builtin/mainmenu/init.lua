@@ -121,7 +121,6 @@ local function init_globals()
 
 	tv_main:set_global_event_handler(main_event_handler)
 	tv_main:set_fixed_size(false)
-
 	ui.set_default("mainwidget")
 	tv_main:show()
 
