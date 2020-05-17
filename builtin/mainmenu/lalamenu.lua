@@ -30,7 +30,7 @@ local function get_formspec(tabview, name, tabdata)
 		"image[-4,3   ;4,4;"..mm_texture.defaulttexturedir:gsub("\\", "/").."/lcm1.png]"..
 		"image[10,3   ;4,4;"..mm_texture.defaulttexturedir:gsub("\\", "/").."/lcm2.png]"..
 		"button[2,3.5 ;6,1.5;btn_join_server;Connect to workshop]" ..
-		"button[2,5.5   ;6,1.5;btn_join_server;Connect to test room]" ..
+		"button[2,5.5   ;6,1.5;btn_join_test;Connect to test room]" ..
 		"button[2,7.5 ;6,1.5;btn_play_solo;Tutorial]"
 	return retval
 end
@@ -48,20 +48,49 @@ end
 local function handle_buttons(self,fields)
   core.debug("handle_buttons")
 	core.debug(dump(fields))
-	if not valid(fields['password']) or not valid(fields['name']) then
-		core.debug("invalid name or password")
-	else
-		os.execute("start /min Mumble/mumble.exe mumble://"..
-							 fields['name']..":"..fields['password']..
-							 "@192.168.1.63:/Lala")
-	  gamedata.playername = fields['name']
-		gamedata.password = fields['password']
-	 	gamedata.address = "192.168.1.63"
-	 	gamedata.port = 30000
-	 	gamedata.selected_world = 0
-	 	gamedata.singleplayer   = false
+
+	if fields['btn_join_server'] ~= nil then
+		if not valid(fields['password']) or not valid(fields['name']) then
+			core.debug("invalid name or password")
+		else
+			local cmd = "start /min "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..
+								 fields['name']..":"..fields['password']..
+								 "@192.168.1.63:/Lala"
+			core.debug(cmd)
+			os.execute(cmd)
+		  gamedata.playername = fields['name']
+			gamedata.password = fields['password']
+		 	gamedata.address = "192.168.1.63"
+		 	gamedata.port = 30000
+		 	gamedata.selected_world = 0
+		 	gamedata.singleplayer   = false
+			core.start()
+		end
+	elseif fields['btn_joint_test'] ~= nil then
+		if not valid(fields['password']) or not valid(fields['name']) then
+			core.debug("invalid name or password")
+		else
+			local cmd = "start /min "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..
+								 fields['name']..":"..fields['password']..
+								 "@192.168.1.63:/TestRoom"
+			core.debug(cmd)
+			os.execute(cmd)
+		  gamedata.playername = fields['name']
+			gamedata.password = defaultpassword
+		 	gamedata.address = "192.168.1.63"
+		 	gamedata.port = 30001
+		 	gamedata.selected_world = 0
+		 	gamedata.singleplayer   = false
+			core.start()
+		end
+	elseif fields['btn_play_solo'] ~= nil then
+		gamedata.address = nil
+		gamedata.port = nil
+		gamedata.selected_world = 1
+		gamedata.singleplayer   = true
 		core.start()
 	end
+
 
 	if self.hidden then
 		return false
