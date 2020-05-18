@@ -66,7 +66,7 @@ local function handle_buttons(self,fields)
 		 	gamedata.singleplayer   = false
 			core.start()
 		end
-	elseif fields['btn_joint_test'] ~= nil then
+	elseif fields['btn_join_test'] ~= nil then
 		if not valid(fields['password']) or not valid(fields['name']) then
 			core.debug("invalid name or password")
 		else
@@ -76,7 +76,7 @@ local function handle_buttons(self,fields)
 			core.debug(cmd)
 			os.execute(cmd)
 		  gamedata.playername = fields['name']
-			gamedata.password = defaultpassword
+			gamedata.password = "bienvenue!"
 		 	gamedata.address = "192.168.1.63"
 		 	gamedata.port = 30001
 		 	gamedata.selected_world = 0
