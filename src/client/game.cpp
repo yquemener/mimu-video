@@ -50,6 +50,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "gui/profilergraph.h"
 #include "mapblock.h"
 #include "minimap.h"
+#include "mumble_link.h"
 #include "nodedef.h"         // Needed for determining pointing to nodes
 #include "nodemetadata.h"
 #include "particles.h"
@@ -842,6 +843,8 @@ private:
 	bool sound_is_dummy = false;
 	SoundMaker *soundmaker = nullptr;
 
+	MumbleLink *mumble_link = nullptr;
+
 	ChatBackend *chat_backend = nullptr;
 
 	EventManager *eventmgr = nullptr;
@@ -1081,6 +1084,10 @@ void Game::run()
 
 	irr::core::dimension2d<u32> previous_screen_size(g_settings->getU16("screen_w"),
 		g_settings->getU16("screen_h"));
+
+	if (g_settings->getBool("enable_sound")) {
+		mumble_link = new MumbleLink();
+	}
 
 	while (RenderingEngine::run()
 			&& !(*kill || g_gamecallback->shutdown_requested
@@ -2958,10 +2965,17 @@ void Game::updateSound(f32 dtime)
 {
 	// Update sound listener
 	v3s16 camera_offset = camera->getOffset();
-	sound->updateListener(camera->getCameraNode()->getPosition() + intToFloat(camera_offset, BS),
-			      v3f(0, 0, 0), // velocity
-			      camera->getDirection(),
-			      camera->getCameraNode()->getUpVector());
+	v3f pos = camera->getCameraNode()->getPosition() + intToFloat(camera_offset, BS);
+	v3f at = camera->getDirection();
+	v3f up = camera->getCameraNode()->getUpVector();
+	sound->updateListener(pos,
+		v3f(0, 0, 0), // velocity
+		at,
+		up);
+	if (mumble_link) {
+		mumble_link->updateMumble(
+				pos.X, pos.Y, pos.Z, at.X, at.Y, at.Z, up.X, up.Y, up.Z);
+	}
 
 	bool mute_sound = g_settings->getBool("mute_sound");
 	if (mute_sound) {
