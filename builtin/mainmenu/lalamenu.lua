@@ -55,12 +55,12 @@ local function handle_buttons(self,fields)
 		else
 			local cmd = "start /min "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..
 								 fields['name']..":"..fields['password']..
-								 "@minetest.iv-labs.org:/Lala"
+								 "@21.iv-labs.org:/Lala"
 			core.debug(cmd)
 			os.execute(cmd)
 		  gamedata.playername = fields['name']
 			gamedata.password = fields['password']
-		 	gamedata.address = "minetest.iv-labs.org"
+		 	gamedata.address = "21.iv-labs.org"
 		 	gamedata.port = 30000
 		 	gamedata.selected_world = 0
 		 	gamedata.singleplayer   = false
@@ -72,12 +72,12 @@ local function handle_buttons(self,fields)
 		else
 			local cmd = "start /min "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..
 								 fields['name']..":"..fields['password']..
-								 "@minetest.iv-labs.org:/TestRoom"
+								 "@21.iv-labs.org:/TestRoom"
 			core.debug(cmd)
 			os.execute(cmd)
 		  gamedata.playername = fields['name']
 			gamedata.password = "bienvenue!"
-		 	gamedata.address = "minetest.iv-labs.org"
+		 	gamedata.address = "21.iv-labs.org"
 		 	gamedata.port = 30001
 		 	gamedata.selected_world = 0
 		 	gamedata.singleplayer   = false
