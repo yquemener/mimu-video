@@ -4,7 +4,7 @@ mkdir /c/temp/mimum
 echo Copying files
 cp -r . /c/temp/mimum/
 cd /c/temp/mimum/
-rm bundle.sh
+rm CMakeLists.txt debug.txt Dockerfile LICENSE.txt minetest.conf misc/  po/
 rm -rf .git
 rm -rf build cmake src
 cd bin

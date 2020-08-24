@@ -24,14 +24,14 @@ local function get_formspec(tabview, name, tabdata)
 	local fav_selected
 	local retval =
 		"formspec_version[2]"..
-		"size[10,10]"..
+		"size[10,6]"..
 		"field[1,1		;3,1 ;name;name;]"..
 		"pwdfield[6,1		;3,1 ;password;password]"..
 		"image[-4,3   ;4,4;"..mm_texture.defaulttexturedir:gsub("\\", "/").."/lcm1.png]"..
 		"image[10,3   ;4,4;"..mm_texture.defaulttexturedir:gsub("\\", "/").."/lcm2.png]"..
-		"button[2,3.5 ;6,1.5;btn_join_server;Connect to workshop]" ..
-		"button[2,5.5   ;6,1.5;btn_join_test;Connect to test room]" ..
-		"button[2,7.5 ;6,1.5;btn_play_solo;Tutorial]"
+		-- "button[2,3.5 ;6,1.5;btn_join_server;Connect to workshop]" ..
+		"button[2,3.5   ;6,1.5;btn_join_test;Connect to test room]"
+		-- "button[2,7.5 ;6,1.5;btn_play_solo;Tutorial]"
 	return retval
 end
 
@@ -53,11 +53,12 @@ local function handle_buttons(self,fields)
 		if not valid(fields['password']) or not valid(fields['name']) then
 			core.debug("invalid name or password")
 		else
+			--local cmd = "cmd.exe /K "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..
 			local cmd = "start /min "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..
 								 fields['name']..":"..fields['password']..
 								 "@21.iv-labs.org:/Lala"
-			core.debug(cmd)
 			os.execute(cmd)
+			--io.popen(cmd)
 		  gamedata.playername = fields['name']
 			gamedata.password = fields['password']
 		 	gamedata.address = "21.iv-labs.org"
@@ -70,11 +71,12 @@ local function handle_buttons(self,fields)
 		if not valid(fields['password']) or not valid(fields['name']) then
 			core.debug("invalid name or password")
 		else
+			--local cmd = "cmd.exe /K "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..			
 			local cmd = "start /min "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..
 								 fields['name']..":"..fields['password']..
 								 "@21.iv-labs.org:/TestRoom"
-			core.debug(cmd)
 			os.execute(cmd)
+			--io.popen(cmd)
 		  gamedata.playername = fields['name']
 			gamedata.password = "bienvenue!"
 		 	gamedata.address = "21.iv-labs.org"

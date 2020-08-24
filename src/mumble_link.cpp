@@ -52,10 +52,13 @@ void MumbleLink::updateMumble(const float pos_x, const float pos_y, const float 
     if (! this->lm)
         return;
 
-    if(this->lm->uiVersion != 2) {
+    if(this->lm->uiVersion == 0) {
         wcsncpy(this->lm->name, L"TestLink", 256);
         wcsncpy(this->lm->description, L"TestLink is a test of the Link plugin.", 2048);
         this->lm->uiVersion = 2;
+    }
+    if (this->lm->uiVersion != 2) {
+	    return;
     }
     this->lm->uiTick++;
 

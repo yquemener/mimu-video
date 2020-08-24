@@ -1068,6 +1068,7 @@ void Game::run()
 	CameraOrientation cam_view  = { 0 };
 	FpsControl draw_times       = { 0 };
 	f32 dtime; // in seconds
+	RECT previous_geom;
 
 	/* Clear the profiler */
 	Profiler::GraphValues dummyvalues;
@@ -1143,6 +1144,38 @@ void Game::run()
 			m_game_ui->m_flags.show_debug);
 		updateFrame(&graph, &stats, dtime, cam_view);
 		updateProfilerGraphs(&graph);
+
+		HWND hWnd = reinterpret_cast<HWND>(
+				driver->getExposedVideoData().OpenGLWin32.HWnd);
+		RECT wingeom;
+		GetWindowRect(hWnd, &wingeom); 
+		//std::cout << wingeom.left << " " << wingeom.top << std::endl;
+		if ((previous_geom.left != wingeom.left) ||
+				(previous_geom.top != wingeom.top)) {
+			/*char cmd[256];
+			sprintf(cmd, "mumble/Mumble.exe rpc geom %d %d %d %d", wingeom.left,
+					wingeom.top, wingeom.right, wingeom.bottom);
+			system(cmd);*/
+
+			HANDLE hPipe;
+			DWORD dwWritten;
+
+			char cmd[256];
+			sprintf(cmd, "geom %d %d %d %d", wingeom.left+10, wingeom.top+40,
+					wingeom.right, wingeom.bottom);
+			hPipe = CreateFile(TEXT("\\\\.\\pipe\\mumble"),
+					GENERIC_READ | GENERIC_WRITE, 0, NULL,
+					OPEN_EXISTING, 0, NULL);
+			if (hPipe != INVALID_HANDLE_VALUE) {
+				WriteFile(hPipe, cmd,
+						strlen(cmd)+1,
+						&dwWritten, NULL);
+				CloseHandle(hPipe);
+			}
+
+
+			previous_geom = wingeom;
+		}
 
 		// Update if minimap has been disabled by the server
 		m_game_ui->m_flags.show_minimap &= client->shouldShowMinimap();
@@ -2972,6 +3005,7 @@ void Game::updateSound(f32 dtime)
 		v3f(0, 0, 0), // velocity
 		at,
 		up);
+	
 	if (mumble_link) {
 		mumble_link->updateMumble(
 				pos.X, pos.Y, pos.Z, at.X, at.Y, at.Z, up.X, up.Y, up.Z);
