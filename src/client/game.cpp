@@ -80,6 +80,39 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 	Text input system
 */
 
+void mumbleCommand(char* cmd)
+{
+	HANDLE hPipe;
+	DWORD dwWritten;
+
+	hPipe = CreateFile(TEXT("\\\\.\\pipe\\mumble"), GENERIC_READ | GENERIC_WRITE, 0,
+			NULL, OPEN_EXISTING, 0, NULL);
+	if (hPipe != INVALID_HANDLE_VALUE) {
+		WriteFile(hPipe, cmd, strlen(cmd) + 1, &dwWritten, NULL);
+		CloseHandle(hPipe);
+	}
+}
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
+{
+	char buffer[128];
+	int written = GetWindowTextA(hwnd, buffer, 128);
+	if (written && strstr(buffer, "Mumble") != NULL) {
+		*(HWND *)lParam = hwnd;
+		return FALSE;
+	}
+	return TRUE;
+}
+
+HWND GetMumbleWindow()
+{
+	HWND hWnd = NULL;
+	EnumWindows(EnumWindowsProc, (LPARAM)(&hWnd));
+	return hWnd;
+}
+
+
+
 struct TextDestNodeMetadata : public TextDest
 {
 	TextDestNodeMetadata(v3s16 p, Client *client)
@@ -708,6 +741,8 @@ protected:
 	void updateStats(RunStats *stats, const FpsControl &draw_times, f32 dtime);
 	void updateProfilerGraphs(ProfilerGraph *graph);
 
+	void updateMumblePosition();
+
 	// Input related
 	void processUserInput(f32 dtime);
 	void processKeyInput();
@@ -877,6 +912,7 @@ private:
 
 	bool random_input;
 	bool simple_singleplayer_mode;
+	bool chat_visible = false;
 	/* End 'cache' */
 
 	/* Pre-calculated values
@@ -909,6 +945,8 @@ private:
 	bool m_camera_offset_changed = false;
 
 	bool m_does_lost_focus_pause_game = false;
+
+	RECT previous_geom; // Used to check if the window has been moved this frame
 
 #ifdef __ANDROID__
 	bool m_cache_hold_aux1;
@@ -1068,7 +1106,6 @@ void Game::run()
 	CameraOrientation cam_view  = { 0 };
 	FpsControl draw_times       = { 0 };
 	f32 dtime; // in seconds
-	RECT previous_geom;
 
 	/* Clear the profiler */
 	Profiler::GraphValues dummyvalues;
@@ -1088,6 +1125,7 @@ void Game::run()
 
 	if (g_settings->getBool("enable_sound")) {
 		mumble_link = new MumbleLink();
+		updateMumblePosition();
 	}
 
 	while (RenderingEngine::run()
@@ -1144,38 +1182,8 @@ void Game::run()
 			m_game_ui->m_flags.show_debug);
 		updateFrame(&graph, &stats, dtime, cam_view);
 		updateProfilerGraphs(&graph);
+		updateMumblePosition();
 
-		HWND hWnd = reinterpret_cast<HWND>(
-				driver->getExposedVideoData().OpenGLWin32.HWnd);
-		RECT wingeom;
-		GetWindowRect(hWnd, &wingeom); 
-		//std::cout << wingeom.left << " " << wingeom.top << std::endl;
-		if ((previous_geom.left != wingeom.left) ||
-				(previous_geom.top != wingeom.top)) {
-			/*char cmd[256];
-			sprintf(cmd, "mumble/Mumble.exe rpc geom %d %d %d %d", wingeom.left,
-					wingeom.top, wingeom.right, wingeom.bottom);
-			system(cmd);*/
-
-			HANDLE hPipe;
-			DWORD dwWritten;
-
-			char cmd[256];
-			sprintf(cmd, "geom %d %d %d %d", wingeom.left+10, wingeom.top+40,
-					wingeom.right, wingeom.bottom);
-			hPipe = CreateFile(TEXT("\\\\.\\pipe\\mumble"),
-					GENERIC_READ | GENERIC_WRITE, 0, NULL,
-					OPEN_EXISTING, 0, NULL);
-			if (hPipe != INVALID_HANDLE_VALUE) {
-				WriteFile(hPipe, cmd,
-						strlen(cmd)+1,
-						&dwWritten, NULL);
-				CloseHandle(hPipe);
-			}
-
-
-			previous_geom = wingeom;
-		}
 
 		// Update if minimap has been disabled by the server
 		m_game_ui->m_flags.show_minimap &= client->shouldShowMinimap();
@@ -1184,11 +1192,13 @@ void Game::run()
 			showPauseMenu();
 		}
 	}
+	mumbleCommand("quit");
 }
 
 
 void Game::shutdown()
 {
+	mumbleCommand("quit");
 	RenderingEngine::finalize();
 #if IRRLICHT_VERSION_MAJOR == 1 && IRRLICHT_VERSION_MINOR <= 8
 	if (g_settings->get("3d_mode") == "pageflip") {
@@ -1743,6 +1753,7 @@ inline bool Game::handleCallbacks()
 {
 	if (g_gamecallback->disconnect_requested) {
 		g_gamecallback->disconnect_requested = false;
+		mumbleCommand("quit");
 		return false;
 	}
 
@@ -1926,7 +1937,17 @@ void Game::processKeyInput()
 			showPauseMenu();
 		}
 	} else if (wasKeyDown(KeyType::CHAT)) {
-		openConsole(0.2, L"");
+		updateMumblePosition();
+		//if (chat_visible)
+		mumbleCommand("hide");
+		mumbleCommand("show");
+		/*HWND mumbleWinHandle = FindWindow("Mumble", "");
+		SetForegroundWindow(mumbleWinHandle);*/
+		HWND mumbleWinHandle = GetMumbleWindow();
+		SetForegroundWindow(mumbleWinHandle);
+
+		/*Show Mumble
+		openConsole(0.2, L"");*/
 	} else if (wasKeyDown(KeyType::CMD)) {
 		openConsole(0.2, L"/");
 	} else if (wasKeyDown(KeyType::CMD_LOCAL)) {
@@ -2400,7 +2421,7 @@ void Game::checkZoomEnabled()
 void Game::updateCameraDirection(CameraOrientation *cam, float dtime)
 {
 	if ((device->isWindowActive() && device->isWindowFocused()
-			&& !isMenuActive()) || random_input) {
+			&& !isMenuActive()) && !chat_visible|| random_input) {
 
 #ifndef __ANDROID__
 		if (!random_input) {
@@ -3988,6 +4009,23 @@ inline void Game::updateProfilerGraphs(ProfilerGraph *graph)
 	g_profiler->graphGet(values);
 	graph->put(values);
 }
+
+void Game::updateMumblePosition()
+{
+	HWND hWnd = reinterpret_cast<HWND>(
+			driver->getExposedVideoData().OpenGLWin32.HWnd);
+	RECT wingeom;
+	GetWindowRect(hWnd, &wingeom);
+	// std::cout << wingeom.left << " " << wingeom.top << std::endl;
+	if ((previous_geom.left != wingeom.left) || (previous_geom.top != wingeom.top)) {
+		char cmd[256];
+		sprintf(cmd, "geom %d %d %d %d", wingeom.left + 10, wingeom.top + 40,
+				wingeom.right, wingeom.bottom);
+		mumbleCommand(cmd);
+		previous_geom = wingeom;
+	}
+}
+
 
 
 

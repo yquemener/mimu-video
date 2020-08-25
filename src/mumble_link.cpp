@@ -49,7 +49,7 @@ void MumbleLink::updateMumble(const float pos_x, const float pos_y, const float 
                               const float at_x, const float at_y, const float at_z,
                               const float up_x, const float up_y, const float up_z)
 {
-    if (! this->lm)
+	if (!this->lm || this->lm == (LinkedMem *)(0xFFFFFFFFFFFFFFFF))
         return;
 
     if(this->lm->uiVersion == 0) {

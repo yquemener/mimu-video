@@ -35,7 +35,7 @@ struct LinkedMem {
 
 class MumbleLink{
 private:
-    LinkedMem* lm;
+    LinkedMem* lm=0;
 
 public:
     MumbleLink();
