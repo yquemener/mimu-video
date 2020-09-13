@@ -46,7 +46,7 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("enable_vbo", "true");
 	settings->setDefault("free_move", "false");
 	settings->setDefault("pitch_move", "false");
-	settings->setDefault("fast_move", "false");
+    settings->setDefault("fast_move", "true");
 	settings->setDefault("noclip", "false");
 	settings->setDefault("screenshot_path", ".");
 	settings->setDefault("screenshot_format", "png");

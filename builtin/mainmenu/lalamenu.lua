@@ -47,7 +47,6 @@ end
 --------------------------------------------------------------------------------
 local function handle_buttons(self,fields)
   core.debug("handle_buttons")
-	core.debug(dump(fields))
 
 	if fields['btn_join_server'] ~= nil then
 		if not valid(fields['password']) or not valid(fields['name']) then
@@ -72,13 +71,23 @@ local function handle_buttons(self,fields)
 			core.debug("invalid name or password")
 		else
 			--local cmd = "cmd.exe /K "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..			
+			-- windows version
 			local cmd = "start /min "..core.get_builtin_path().."../bin/Mumble/mumble.exe mumble://"..
 								 fields['name']..":"..fields['password']..
 								 "@21.iv-labs.org:/TestRoom"
 			os.execute(cmd)
+			-- linux version
+			local cmd = core.get_builtin_path().."../bin/mumble mumble://"..
+								 fields['name']..":"..fields['password']..
+								 "@21.iv-labs.org:/TestRoom &"
+			os.execute(cmd)
 			--io.popen(cmd)
 		  gamedata.playername = fields['name']
-			gamedata.password = "bienvenue!"
+			if fields['password'] == "" then
+				gamedata.password = "bienvenue!"
+			else
+				gamedata.password = fields["password"]
+			end
 		 	gamedata.address = "21.iv-labs.org"
 		 	gamedata.port = 30001
 		 	gamedata.selected_world = 0

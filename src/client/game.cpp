@@ -71,17 +71,36 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "script/scripting_client.h"
 #include "hud.h"
 
+#include <cstdlib>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <string.h>
+
 #if USE_SOUND
 	#include "client/sound_openal.h"
 #else
 	#include "client/sound.h"
 #endif
+
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__ANDROID__) && \
+        !defined(SERVER) && !defined(__HAIKU__)
+#define XORG_USED
+#endif
+#ifdef XORG_USED
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xatom.h>
+#endif
+
 /*
 	Text input system
 */
 
 void mumbleCommand(char* cmd)
 {
+#ifdef _WIN32
 	HANDLE hPipe;
 	DWORD dwWritten;
 
@@ -91,17 +110,40 @@ void mumbleCommand(char* cmd)
 		WriteFile(hPipe, cmd, strlen(cmd) + 1, &dwWritten, NULL);
 		CloseHandle(hPipe);
 	}
+#else
+
+    int sock;
+    sockaddr_un local_server;
+
+    sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sock < 0)
+        return;
+    local_server.sun_family = AF_UNIX;
+    char basepath[108];
+        strcpy(basepath, std::getenv("XDG_RUNTIME_DIR"));
+    if(basepath == nullptr)
+        strcpy(basepath, std::getenv("HOME"));
+    if(basepath == nullptr)
+        strcpy(basepath,"/tmp/");
+    sprintf(local_server.sun_path, "%s/MumbleSocket", basepath);
+    std::cout << "CMD="<< cmd << std::endl;
+    connect(sock, (struct sockaddr *) &local_server, sizeof(struct sockaddr_un));
+    write(sock, cmd, strlen(cmd));
+    close(sock);
+
+#endif
 }
 
-BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
+#ifdef _WIN32
+bool CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
 {
 	char buffer[128];
 	int written = GetWindowTextA(hwnd, buffer, 128);
 	if (written && strstr(buffer, "Mumble") != NULL) {
 		*(HWND *)lParam = hwnd;
-		return FALSE;
+        return false;
 	}
-	return TRUE;
+    return true;
 }
 
 HWND GetMumbleWindow()
@@ -110,7 +152,7 @@ HWND GetMumbleWindow()
 	EnumWindows(EnumWindowsProc, (LPARAM)(&hWnd));
 	return hWnd;
 }
-
+#endif
 
 
 struct TextDestNodeMetadata : public TextDest
@@ -946,7 +988,7 @@ private:
 
 	bool m_does_lost_focus_pause_game = false;
 
-	RECT previous_geom; // Used to check if the window has been moved this frame
+    int previous_geom[4]; // Used to check if the window has been moved this frame
 
 #ifdef __ANDROID__
 	bool m_cache_hold_aux1;
@@ -1941,10 +1983,10 @@ void Game::processKeyInput()
 		//if (chat_visible)
 		mumbleCommand("hide");
 		mumbleCommand("show");
-		/*HWND mumbleWinHandle = FindWindow("Mumble", "");
-		SetForegroundWindow(mumbleWinHandle);*/
+#ifdef _WIN32
 		HWND mumbleWinHandle = GetMumbleWindow();
 		SetForegroundWindow(mumbleWinHandle);
+#endif
 
 		/*Show Mumble
 		openConsole(0.2, L"");*/
@@ -4012,17 +4054,46 @@ inline void Game::updateProfilerGraphs(ProfilerGraph *graph)
 
 void Game::updateMumblePosition()
 {
-	HWND hWnd = reinterpret_cast<HWND>(
+    int wingeom[4];
+
+#ifdef _WIN32
+    HWND hWnd = reinterpret_cast<HWND>(
 			driver->getExposedVideoData().OpenGLWin32.HWnd);
-	RECT wingeom;
-	GetWindowRect(hWnd, &wingeom);
+    RECT winrect;
+    GetWindowRect(hWnd, &winrect);
+    wingeom[0]=winrect.left;
+    wingeom[1]=winrect.tpp;
+    wingeom[2]=winrect.right;
+    wingeom[3]=winrect.bottom;
 	// std::cout << wingeom.left << " " << wingeom.top << std::endl;
-	if ((previous_geom.left != wingeom.left) || (previous_geom.top != wingeom.top)) {
+#endif
+#ifdef XORG_USED
+    const video::SExposedVideoData exposedData = driver->getExposedVideoData();
+    Display *x11_dpl = reinterpret_cast<Display *>(exposedData.OpenGLLinux.X11Display);
+    Window x11_win = reinterpret_cast<Window>(exposedData.OpenGLLinux.X11Window);
+    XWindowAttributes xwa;
+    XGetWindowAttributes(x11_dpl, x11_win, &xwa);
+    Window x11_root = xwa.root;
+    int root_x, root_y;
+    Window child;
+    XTranslateCoordinates( x11_dpl, x11_win, x11_root, 0, 0, &root_x, &root_y, &child );
+    wingeom[0] = root_x - xwa.x;
+    wingeom[1] = root_y - xwa.y;
+//    std::cout << wingeom[0] << " " << wingeom[1] << std::endl;
+#endif
+
+
+    if ((previous_geom[0] != wingeom[0]) || (previous_geom[1] != wingeom[1])) {
 		char cmd[256];
-		sprintf(cmd, "geom %d %d %d %d", wingeom.left + 10, wingeom.top + 40,
-				wingeom.right, wingeom.bottom);
+        sprintf(cmd, "geom %d %d %d %d", wingeom[0] + 10, wingeom[1] + 40,
+                wingeom[2], wingeom[3]);
+
 		mumbleCommand(cmd);
-		previous_geom = wingeom;
+        previous_geom[0] = wingeom[0];
+        previous_geom[1] = wingeom[1];
+        previous_geom[2] = wingeom[2];
+        previous_geom[3] = wingeom[3];
+
 	}
 }
 
