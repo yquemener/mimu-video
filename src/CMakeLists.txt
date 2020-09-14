@@ -155,6 +155,12 @@ endif(ENABLE_FREETYPE)
 option(ENABLE_CURSES "Enable ncurses console" TRUE)
 set(USE_CURSES FALSE)
 
+include_directories(
+        ${PROJECT_BINARY_DIR}
+        ${PROJECT_SOURCE_DIR}
+        ${PROJECT_SOURCE_DIR}/script
+        )
+
 if(ENABLE_CURSES)
 	find_package(Ncursesw)
 	if(CURSES_FOUND)
@@ -495,6 +501,7 @@ endif()
 include_directories(
 	${PROJECT_BINARY_DIR}
 	${PROJECT_SOURCE_DIR}
+        ${PROJECT_SOURCE_DIR}/script
 	${IRRLICHT_INCLUDE_DIR}
 	${ZLIB_INCLUDE_DIR}
 	${PNG_INCLUDE_DIR}
@@ -504,7 +511,6 @@ include_directories(
 	${GMP_INCLUDE_DIR}
 	${JSON_INCLUDE_DIR}
 	${X11_INCLUDE_DIR}
-	${PROJECT_SOURCE_DIR}/script
 )
 
 if(USE_GETTEXT)
